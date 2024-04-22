@@ -1,0 +1,33 @@
+{
+  "name": "create-nextws",
+  "version": "0.0.1",
+  "description": "",
+  "main": "index.js",
+  "type": "module",
+  "scripts": {
+    "test": "echo \"Error: no test specified\" && exit 1"
+  },
+  "repository": {
+    "type": "git",
+    "url": "git+https://github.com/YeonV/create-nextws.git"
+  },
+  "keywords": [
+    "nextjs"
+  ],
+  "author": "YeonV",
+  "license": "MIT",
+  "bugs": {
+    "url": "https://github.com/YeonV/create-nextws/issues"
+  },
+  "homepage": "https://github.com/YeonV/create-nextws#readme",
+  "dependencies": {
+    "arg": "^5.0.2",
+    "chalk": "^5.3.0",
+    "jimp": "^0.22.12",
+    "ora": "^8.0.1",
+    "png-to-ico": "^2.1.8",
+    "png2icons": "^2.0.1",
+    "prompts": "^2.4.2",
+    "replace-in-file": "^7.1.0"
+  }
+}
