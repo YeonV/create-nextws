@@ -20,10 +20,6 @@ Scaffolding NextJS + NextWS + Strapi -- Dockerized
 
 ```sh
 npx create-nextws@latest
-# or with NPM:
-npm create-nextws@latest
-#or with Yarn
-yarn create-nextws
 ```
 
 
