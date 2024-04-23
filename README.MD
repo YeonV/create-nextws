@@ -22,11 +22,11 @@ Scaffolding NextJS + NextWS + Strapi, Dockerized
 ### Initialize
 
 ```sh
-npx create nextws@latest
+npx create-nextws@latest
 # or with NPM:
-npm create nextws@latest
+npm create-nextws@latest
 #or with Yarn
-yarn create nextws
+yarn create-nextws
 ```
 
 
