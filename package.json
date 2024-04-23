@@ -2,19 +2,29 @@
   "name": "create-nextws",
   "version": "0.0.1",
   "description": "",
+  "bin": {
+    "create-vitron": "index.js",
+    "cev": "index.js"
+  },
   "main": "index.js",
   "type": "module",
   "scripts": {
-    "test": "echo \"Error: no test specified\" && exit 1"
+    "start": "node index.js"
   },
   "repository": {
     "type": "git",
     "url": "git+https://github.com/YeonV/create-nextws.git"
   },
   "keywords": [
-    "nextjs"
+    "nextjs",
+    "nextws",
+    "scaffold",
+    "starter",
+    "react",
+    "typescript",
+    "strapi"
   ],
-  "author": "YeonV",
+  "author": "YeonV a.k.a. Blade<dev@yeonv.com>",
   "license": "MIT",
   "bugs": {
     "url": "https://github.com/YeonV/create-nextws/issues"
@@ -23,6 +33,7 @@
   "dependencies": {
     "arg": "^5.0.2",
     "chalk": "^5.3.0",
+    "dotenv": "^16.4.5",
     "jimp": "^0.22.12",
     "ora": "^8.0.1",
     "png-to-ico": "^2.1.8",
