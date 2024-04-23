@@ -1,7 +1,7 @@
 # create-nextws
 
 ---
-Scaffolding NextJS + NextWS + Strapi, Dockerized
+Scaffolding NextJS + NextWS + Strapi -- Dockerized
 
 ---
 
