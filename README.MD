@@ -29,6 +29,12 @@ yarn create nextws
 
 <img width="450" src="https://user-images.githubusercontent.com/28861537/163223274-d89c1b6f-185d-41a4-937f-2c378ad0afd0.png" alt="logo" style="max-width: 400px" />
 
+![image](https://github.com/YeonV/create-nextws/assets/28861537/1d0b0d58-18a4-4633-bc16-07036fac8ca5)
+
+![image](https://github.com/YeonV/create-nextws/assets/28861537/8d1c596f-ac46-45aa-baf9-bfccd39dcadb)
+
+![image](https://github.com/YeonV/create-nextws/assets/28861537/9de7dbbe-a380-4e12-8e70-b01b639f883a)
+
 ---
 
 [![creator](https://img.shields.io/badge/CREATOR-Yeon-blue.svg?logo=github&logoColor=white)](https://github.com/YeonV) [![creator](https://img.shields.io/badge/A.K.A-Blade-darkred.svg?logo=github&logoColor=white)](https://github.com/YeonV)
