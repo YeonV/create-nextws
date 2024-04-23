@@ -3,6 +3,7 @@
 import { createRequire } from 'module'
 const require = createRequire(import.meta.url)
 import fs from 'fs'
+import * as fsp from 'fs/promises'
 import cp from 'child_process'
 import replace from 'replace-in-file'
 import path from 'path'
@@ -11,6 +12,9 @@ import { cwd } from 'process'
 import crypto from 'crypto'
 import prompts from 'prompts'
 import * as spinner from './spinner.js'
+const { exec } = require('child_process')
+const { promisify } = require('util')
+const execPromise = promisify(exec)
 
 export function showHelp() {
   console.clear()
@@ -30,43 +34,33 @@ export function showHelp() {
   )
 }
 
-export function showDocs(projectName, ptitlebar, ptray, pprimary, picon, installNodeModules) {
+export function showDocs(projectName, pprimary, picon, installNodeModules) {
   const name = projectName || 'NextWS'
-  const titlebar = ptitlebar === true ? 'custom' : 'default'
   const icon = picon === true ? 'custom' : 'default'
-  const tray = ptray === true ? 'yes' : 'no'
 
   const primary = pprimary === '' ? 'default' : pprimary
   console.clear()
   console.log(`
-${chalk.dim.grey('┌───────────────────────────────────────┐')}
-${chalk.dim.grey('│')}           ${chalk.bold.red('Welcome to NextWS')}           ${chalk.dim.grey('│')}
-${chalk.dim.grey('│')}  ${chalk.dim('Electron + Vite + React + Typescript')} ${chalk.dim.grey('│')}
-${chalk.dim.grey('├───────────────────────────────────────┤')}
-${chalk.dim.grey('│')}  Name:      ${chalk.bold.yellow(`${name}`)}${spaces(26, name)}${chalk.dim.grey('│')}
-${chalk.dim.grey('│')}  Tray:      ${chalk.bold.yellow(`${tray}`)}${spaces(26, tray)}${chalk.dim.grey('│')}
-${chalk.dim.grey('│')}  Icon:      ${chalk.bold.yellow(`${icon}`)}${spaces(26, icon)}${chalk.dim.grey('│')}
-${chalk.dim.grey('│')}  Titlebar:  ${chalk.bold.yellow(`${titlebar}`)}${spaces(26, titlebar)}${chalk.dim.grey('│')}
-${chalk.dim.grey('│')}  Color:     ${chalk.bold.yellow(`${primary}`)}${spaces(26, primary)}${chalk.dim.grey('│')}
-${chalk.dim.grey('├─────────┬──────────────┬──────────────┤')}
-${chalk.dim.grey('│')}         ${chalk.dim.grey('│')}     APP      ${chalk.dim.grey('│')}     WEB      ${chalk.dim.grey('│')}
-${chalk.dim.grey('├─────────┼──────────────┼──────────────┤')}
-${chalk.dim.grey('│')}  dev    ${chalk.dim.grey('│')}  ${chalk.bold.yellow('yarn start')}  ${chalk.dim.grey('│')}  ${chalk.bold.yellow(
-    'yarn build'
-  )}  ${chalk.dim.grey('│')}
-${chalk.dim.grey('│')}  build  ${chalk.dim.grey('│')}  ${chalk.bold.yellow('yarn dev')}    ${chalk.dim.grey('│')}  ${chalk.bold.yellow(
-    'yarn dist'
-  )}   ${chalk.dim.grey('│')}
-${chalk.dim.grey('└─────────┴──────────────┴──────────────┘')}
-                    ${chalk.dim.grey('by Blade')}
-  
-To get started run:
-  
-${chalk.bold.yellow(`cd ${name}`)}
-${!installNodeModules ? chalk.bold.yellow('yarn\nyarn dev') : chalk.bold.yellow('yarn dev')}`)
+${chalk.dim.grey('┌────────────────────────────────────────────┐')}
+${chalk.dim.grey('│')}              ${chalk.bold.red('Welcome to NextWS')}             ${chalk.dim.grey('│')}
+${chalk.dim.grey('│')}  ${chalk.dim('NextJS + Websocket + Strapi -- Dockerized')} ${chalk.dim.grey('│')}
+${chalk.dim.grey('├────────────────────────────────────────────┤')}
+${chalk.dim.grey('│')}  Name:      ${chalk.bold.yellow(`${name}`)}${spaces(31, name)}${chalk.dim.grey('│')}
+${chalk.dim.grey('│')}  Icon:      ${chalk.bold.yellow(`${icon}`)}${spaces(31, icon)}${chalk.dim.grey('│')}
+${chalk.dim.grey('│')}  Color:     ${chalk.bold.yellow(`${primary}`)}${spaces(31, primary)}${chalk.dim.grey('│')}
+${chalk.dim.grey('├────────────────┬───────────────────────────┤')}
+${chalk.dim.grey('│')}  Service       ${chalk.dim.grey('│')}  URL${spaces(29, primary)}${chalk.dim.grey('│')}
+${chalk.dim.grey('├────────────────┼───────────────────────────┘')}
+${chalk.dim.grey('│')}  NextJS - prod ${chalk.dim.grey('│')}  ${chalk.bold.yellow('http://localhost:3100')}
+${chalk.dim.grey('│')}  NextJS - dev  ${chalk.dim.grey('│')}  ${chalk.bold.yellow('http://localhost:3101')}
+${chalk.dim.grey('│')}  Strapi        ${chalk.dim.grey('│')}  ${chalk.bold.yellow('http://localhost:1337')}
+${chalk.dim.grey('└────────────────┘')}
+${chalk.dim.grey('    by Blade')}
+
+`)
 }
 
-export function replaceStrings(name, titlebar, tray, primary) {
+export function replaceStrings(name, primary) {
   return new Promise((resolve, reject) => {
     const options = [
       {
@@ -201,9 +195,7 @@ export function sleep(ms) {
 }
 
 export async function isDockerRunning() {
-  const { exec } = require('child_process')
-  const { promisify } = require('util')
-  const execPromise = promisify(exec)
+
 
   try {
     // Check if docker ps command exists
@@ -218,9 +210,6 @@ export async function isDockerRunning() {
   }
 }
 export async function dockerNetwork(name) {
-  const { exec } = require('child_process')
-  const { promisify } = require('util')
-  const execPromise = promisify(exec)
 
   try {
     // Check if the network exists
@@ -228,18 +217,17 @@ export async function dockerNetwork(name) {
     if (!networks.includes(name)) {
       // If the network doesn't exist, create it
       await execPromise(`docker network create ${name}`)
-      console.log(`Docker network "${name}" has been created.`)
+      // console.log(`Docker network "${name}" has been created.`)
     } else {
-      console.log(`Docker network "${name}" already exists.`)
+      // console.log(`Docker network "${name}" already exists.`)
     }
   } catch (error) {
     console.error(`Error checking/creating Docker network "${name}":`, error)
   }
 }
 
-import * as fsp from 'fs/promises'
 
-export async function generateEnv(input = '.env.example', output = '.env') {
+export async function generateEnv(input = '.env.example', output = '.env', autogen = false) {
   const fileStream = await fsp.readFile(input, 'utf-8')
   const lines = fileStream.split('\n')
 
@@ -251,20 +239,26 @@ export async function generateEnv(input = '.env.example', output = '.env') {
     { name: 'Docker', filter: (key) => key.includes('DOCKER') },
     { name: 'Letsencrypt', filter: (key) => ['LETSENCRYPT_EMAIL', 'BASE_DOMAIN', 'STRAPI_SUB_DOMAIN', 'SUB_DOMAIN'].includes(key) }
   ]
-
-  const selectedCategories = await prompts([
-    {
-      type: 'multiselect',
-      name: 'value',
-      message: 'Select categories to configure:',
-      choices: categories.map((category) => ({ title: category.name, value: category }))
-    }
-  ])
+  let selectedCategories = { value: [] }
+  if (autogen === false) {
+    selectedCategories = await prompts([
+      {
+        type: 'multiselect',
+        name: 'value',
+        message: chalk.bold.yellow('Select categories to configure:'),
+        choices: categories.map((category) => ({ title: category.name, value: category }))
+      }
+    ])
+  }
 
   let newEnv = ''
 
   for (const line of lines) {
-    if (line.trim() === '' || line.startsWith('#')) {
+    if (line.startsWith('#')) {
+      continue
+    }
+    if (line.trim() === '') {
+      newEnv += `\n`
       continue
     }
 
@@ -273,13 +267,14 @@ export async function generateEnv(input = '.env.example', output = '.env') {
 
     let value = ''
     if (defaultValue.startsWith('XXXXXXX')) {
-      value = crypto.randomBytes(20).toString('hex') // generate a 40-character hexadecimal string
-    } else if (selectedCategories.value.some((category) => category.filter(key))) {
+      value = crypto.randomBytes(Math.ceil(defaultValue.length / 2)).toString('hex')
+    } else if (!autogen && selectedCategories.value.some((category) => category.filter(key))) {
       const userInput = await prompts([
         {
           type: 'text',
           name: key,
-          message: chalk.bold.yellow(`Set ${chalk.bold.cyan(key)} (ENTER for default: ${chalk.bold.cyan(defaultValue)}): `)
+          message: chalk.bold.yellow(`Set ${chalk.bold.cyan(key)}:`),
+          initial: defaultValue
         }
       ])
       value = userInput[key] || defaultValue
@@ -290,24 +285,31 @@ export async function generateEnv(input = '.env.example', output = '.env') {
     newEnv += `${key}="${value}"\n`
   }
 
-  spinner.create(chalk.bold.yellow('.env file has been successfully generated.'))
+  spinner.create(chalk.bold.yellow('Successfully generated .env'))
   spinner.clear()
   return await fsp.writeFile(output, newEnv)
 }
 
-export async function configureDockerCompose() {
+export async function configureDockerCompose(filePath = 'docker-compose.yml') {
   // Read the docker-compose.yml file
-  const dockerCompose = fs.readFileSync('docker-compose.yml', 'utf-8')
+  const dockerCompose = fs.readFileSync(filePath, 'utf-8')
 
   // Define the services that can be renamed
-  const services = ['nextdev', 'next', 'strapiDB', 'strapiAdminer', 'strapi']
-
+  const services = ['yznextdev', 'yznextprod', 'yzstrapiDB', 'yzstrapiAdminer', 'yzstrapiweb']
+  const serviceNames = {
+    yznextdev: 'NextJS - Development',
+    yznextprod: 'NextJS - Production',
+    yzstrapiDB: 'Strapi - Database',
+    yzstrapiAdminer: 'Strapi - Adminer',
+    yzstrapiweb: 'Strapi - Web'
+  }
+  console.log(chalk.bold.yellow('✔ Set new service names:'))
   // Ask the user for the new service names
   const responses = await prompts(
     services.map((service) => ({
       type: 'text',
       name: service,
-      message: `Enter a new name for the ${service} service (press Enter to keep the current name):`,
+      message: chalk.bold.yellow(`Set ${chalk.bold.cyan(serviceNames[service])}:`),
       initial: service
     }))
   )
@@ -315,12 +317,12 @@ export async function configureDockerCompose() {
   // Replace the service names in the docker-compose.yml file
   let newDockerCompose = dockerCompose
   for (const service of services) {
-    const regex = new RegExp(`(^|: |-)${service}( |$)`, 'gm')
-    newDockerCompose = newDockerCompose.replace(regex, `$1${responses[service]}$2`)
+    const regex = new RegExp(service, 'g')
+    newDockerCompose = newDockerCompose.replace(regex, responses[service])
   }
 
   // Write the new docker-compose.yml file
-  spinner.create(chalk.bold.yellow('docker-compose.yml has been successfully updated'))
+  spinner.create(chalk.bold.yellow('Successfully created docker-compose.yml'))
   spinner.clear()
-  return await fsp.writeFile('docker-compose.yml', newDockerCompose)
+  return await fsp.writeFile(filePath, newDockerCompose)
 }

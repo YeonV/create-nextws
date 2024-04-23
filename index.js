@@ -13,6 +13,9 @@ import { cwd } from 'process'
 import * as utils from './utils.js'
 import * as spinner from './spinner.js'
 import { config as dotEnv } from 'dotenv'
+const { exec } = require('child_process')
+const { promisify } = require('util')
+const execPromise = promisify(exec)
 
 const __dirname = new URL('.', import.meta.url).pathname
 
@@ -26,7 +29,7 @@ const args = arg({
 })
 
 if (args['--version']) {
-  ;(async () => {
+  ; (async () => {
     const pkg = require(path.join(__dirname, 'package.json'))
     console.log(`NextWS v${pkg.version}`)
     process.exit(0)
@@ -67,33 +70,30 @@ async function init() {
       }
     },
     {
-      type: 'text',
-      name: 'primary',
-      message: chalk.bold.yellow('Primary color (empty for default):')
-    },
-    {
       type: 'select',
       name: 'autogen',
       message: chalk.bold.yellow('Automatic Mode:'),
       choices: [
-        { title: 'No', description: 'No', value: false },
-        { title: 'Yes', description: 'Yes', value: true }
+        { title: 'Yes', description: 'Yes', value: true },
+        { title: 'No', description: 'No, let me customize it', value: false }
       ]
     }
   ])
 
   if (!project.projectname) return
   const projectName = project.projectname
-
-  const titlebar = project.titlebar
-  const tray = project.tray
-  const primary = project.primary
+  const basePath = path.join(cwd(), projectName)
   const autogen = project.autogen
   let installNodeModules = { value: true }
-  let manual = { autoenv: { value: true } }
-
+  let manual = { autoenv: { value: true }, compose: { value: true }, primary: ''}
+  let primary = ''
   if (autogen === false) {
     manual = await prompts([
+      {
+        type: 'text',
+        name: 'primary',
+        message: chalk.bold.yellow('Primary color (empty for default):')
+      },
       {
         type: 'select',
         name: 'autoenv',
@@ -113,48 +113,55 @@ async function init() {
         ]
       }
     ])
-    installNodeModules = await prompts([
+
+    primary = manual.primary
+    if (autogen === false) {
+      installNodeModules = await prompts([
+        {
+          type: 'select',
+          name: 'value',
+          message: chalk.bold.yellow('Install Node Modules:'),
+          choices: [
+            { title: 'No', description: 'No just scaffold the app', value: false },
+            { title: 'Yes', description: 'Yes (this will take time)', value: true }
+          ]
+        }
+      ])
+    }
+  }
+  let template = { value: { repoName: 'meeting' } }
+  if (autogen === false) {
+    template = await prompts([
       {
         type: 'select',
         name: 'value',
-        message: chalk.bold.yellow('Install Node Modules:'),
+        message: chalk.bold.yellow('Template:'),
         choices: [
-          { title: 'No', description: 'No just scaffold the app', value: false },
-          { title: 'Yes', description: 'Yes (this will take time)', value: true }
+          {
+            title: 'NextJS + NextWS + Strapi',
+            description: 'more might come',
+            value: { repoName: 'meeting' }
+          }
         ]
       }
     ])
   }
-
-  const template = await prompts([
-    {
-      type: 'select',
-      name: 'value',
-      message: chalk.bold.yellow('Template:'),
-      choices: [
-        {
-          title: 'NextJS + NextWS + Strapi',
-          description: 'more might come',
-          value: { repoName: 'meeting' }
-        }
-      ]
-    }
-  ])
-
   if (!template.value) return
 
-  const img2ico = await prompts([
-    {
-      type: 'select',
-      name: 'value',
-      message: chalk.bold.yellow('Use custom icon.png:'),
-      choices: [
-        { title: 'No', description: 'No', value: false },
-        { title: 'Yes', description: 'Yes', value: true }
-      ]
-    }
-  ])
-
+  let img2ico = { value: false }
+  if (autogen === false) {
+    img2ico = await prompts([
+      {
+        type: 'select',
+        name: 'value',
+        message: chalk.bold.yellow('Use custom icon.png:'),
+        choices: [
+          { title: 'No', description: 'No', value: false },
+          { title: 'Yes', description: 'Yes', value: true }
+        ]
+      }
+    ])
+  }
   const { repoName, branch } = template.value
   const repo = `https://github.com/yeonv/${repoName}`
 
@@ -171,7 +178,7 @@ async function init() {
     })
     spinner.clear()
     spinner.create(chalk.bold.yellow('Configuring App...'))
-    const configured = await utils.replaceStrings(projectName, titlebar, tray, primary)
+    const configured = await utils.replaceStrings(projectName, primary)
     if (configured) {
       spinner.clear()
     }
@@ -199,40 +206,26 @@ async function init() {
         await utils.handleIcon(projectName)
       }
     }
-
-    const { exec } = require('child_process')
-
-    const basePath = path.join(cwd(), projectName)
-    const { promisify } = require('util')
-    const execPromise = promisify(exec)
-
-    if (project.autogen) {
-      if (process.platform === 'win32') {
-        await execPromise(`copy ${basePath}\\.env.example ${basePath}\\.env`)
-        await execPromise(`copy ${basePath}\\.env ${basePath}\\frontend\\.env`)
-        await execPromise(`copy ${basePath}\\.env ${basePath}\\backend\\.env`)
-      } else {
-        await execPromise(`cp ${basePath}/.env.example ${basePath}/.env`)
-        await execPromise(`cp ${basePath}/.env ${basePath}/frontend/.env`)
-        await execPromise(`cp ${basePath}/.env ${basePath}/backend/.env`)
-      }
+    if (process.platform === 'win32') {
+      await utils.generateEnv(`${basePath}\\.env.example`, `${basePath}\\.env`, project.autogen || manual.autoenv.value || manual.autoenv)
+      await execPromise(`copy ${basePath}\\.env ${basePath}\\frontend\\.env`)
+      await execPromise(`copy ${basePath}\\.env ${basePath}\\backend\\.env`)
     } else {
+      await utils.generateEnv(`${basePath}/.env.example`, `${basePath}/.env`, project.autogen || manual.autoenv.value || manual.autoenv)
+      await execPromise(`cp ${basePath}/.env ${basePath}/frontend/.env`)
+      await execPromise(`cp ${basePath}/.env ${basePath}/backend/.env`)
+    }
+
+    if (!project.autogen) {
       if (process.platform === 'win32') {
-        await utils.generateEnv(`${basePath}\\.env.example`, `${basePath}\\.env`)
         dotEnv({ path: `${basePath}\\.env` })
       } else {
-        await utils.generateEnv(`${basePath}/.env.example`, `${basePath}/.env`)
         dotEnv({ path: `${basePath}/.env` })
       }
     }
 
     if (installNodeModules.value) {
       spinner.create(chalk.bold.yellow('Installing Node Modules (grab a coffee)...'))
-      const { exec } = require('child_process')
-
-      const basePath = path.join(cwd(), projectName)
-      const { promisify } = require('util')
-      const execPromise = promisify(exec)
 
       if (process.platform === 'win32') {
         await execPromise(`cd ${basePath}\\frontend && npm install`)
@@ -244,18 +237,15 @@ async function init() {
       spinner.clear()
     }
     if (docker) {
-      if (manual.compose.value) {
-        spinner.create(chalk.bold.yellow('Configuring Docker Compose...'))
-        await utils.configureDockerCompose()
-        spinner.clear()
+      const basePath = path.join(cwd(), projectName)
+      // console.log('EYYYY', manual)
+      if ((manual.compose === true || manual.compose.value === true) && project.autogen === false) {
+        // spinner.create(chalk.bold.yellow('Configuring Docker Compose...'))
+        await utils.configureDockerCompose(`${basePath}/docker-compose.yml`)
+        // spinner.clear()
       }
 
       spinner.create(chalk.bold.yellow('Starting Docker Containers...'))
-      const { exec } = require('child_process')
-
-      const basePath = path.join(cwd(), projectName)
-      const { promisify } = require('util')
-      const execPromise = promisify(exec)
 
       await utils.dockerNetwork(process.env.DOCKER_NETWORK)
       await execPromise(`cd ${basePath} && docker-compose up -d`)
@@ -263,7 +253,7 @@ async function init() {
     }
 
     await utils.sleep(2000)
-    utils.showDocs(projectName, titlebar, tray, primary, img2ico.value, installNodeModules.value)
+    utils.showDocs(projectName, primary, img2ico.value, installNodeModules.value)
   } catch (error) {
     console.log(error)
     spinner.fail(error)
