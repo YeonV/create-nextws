@@ -34,32 +34,6 @@ export function showHelp() {
   )
 }
 
-export function showDocs(projectName, pprimary, picon, installNodeModules) {
-  const name = projectName || 'NextWS'
-  const icon = picon === true ? 'custom' : 'default'
-
-  const primary = pprimary === '' ? 'default' : pprimary
-  console.clear()
-  console.log(`
-${chalk.dim.grey('┌────────────────────────────────────────────┐')}
-${chalk.dim.grey('│')}              ${chalk.bold.red('Welcome to NextWS')}             ${chalk.dim.grey('│')}
-${chalk.dim.grey('│')}  ${chalk.dim('NextJS + Websocket + Strapi -- Dockerized')} ${chalk.dim.grey('│')}
-${chalk.dim.grey('├────────────────────────────────────────────┤')}
-${chalk.dim.grey('│')}  Name:      ${chalk.bold.yellow(`${name}`)}${spaces(31, name)}${chalk.dim.grey('│')}
-${chalk.dim.grey('│')}  Icon:      ${chalk.bold.yellow(`${icon}`)}${spaces(31, icon)}${chalk.dim.grey('│')}
-${chalk.dim.grey('│')}  Color:     ${chalk.bold.yellow(`${primary}`)}${spaces(31, primary)}${chalk.dim.grey('│')}
-${chalk.dim.grey('├────────────────┬───────────────────────────┤')}
-${chalk.dim.grey('│')}  Service       ${chalk.dim.grey('│')}  URL${spaces(29, primary)}${chalk.dim.grey('│')}
-${chalk.dim.grey('├────────────────┼───────────────────────────┘')}
-${chalk.dim.grey('│')}  NextJS - prod ${chalk.dim.grey('│')}  ${chalk.bold.yellow('http://localhost:3100')}
-${chalk.dim.grey('│')}  NextJS - dev  ${chalk.dim.grey('│')}  ${chalk.bold.yellow('http://localhost:3101')}
-${chalk.dim.grey('│')}  Strapi        ${chalk.dim.grey('│')}  ${chalk.bold.yellow('http://localhost:1337')}
-${chalk.dim.grey('└────────────────┘')}
-${chalk.dim.grey('    by Blade')}
-
-`)
-}
-
 export function replaceStrings(name, primary) {
   return new Promise((resolve, reject) => {
     const options = [
@@ -182,12 +156,6 @@ export async function pm() {
   return pm
 }
 
-export function spaces(max, str) {
-  return Array(max - str.length)
-    .fill('\xa0')
-    .join('')
-}
-
 export function sleep(ms) {
   return new Promise((resolve) => {
     setTimeout(resolve, ms)
@@ -195,22 +163,17 @@ export function sleep(ms) {
 }
 
 export async function isDockerRunning() {
-
-
   try {
-    // Check if docker ps command exists
     await execPromise('docker ps')
     // Additional check for at least one running container (optional)
     // const psOutput = await execPromise('docker ps -q')
     // return psOutput.trim() !== ''
     return true
   } catch (error) {
-    // Likely 'docker ps' command not found, so Docker might not be installed
     return false
   }
 }
 export async function dockerNetwork(name) {
-
   try {
     // Check if the network exists
     const { stdout: networks } = await execPromise('docker network ls --format "{{.Name}}"')
@@ -225,7 +188,6 @@ export async function dockerNetwork(name) {
     console.error(`Error checking/creating Docker network "${name}":`, error)
   }
 }
-
 
 export async function generateEnv(input = '.env.example', output = '.env', autogen = false) {
   const fileStream = await fsp.readFile(input, 'utf-8')

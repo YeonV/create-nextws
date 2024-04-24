@@ -13,6 +13,9 @@ import { cwd } from 'process'
 import * as utils from './utils.js'
 import * as spinner from './spinner.js'
 import { config as dotEnv } from 'dotenv'
+import * as terminalTools from '@blade86/terminal-tools'
+const { logTable } = terminalTools
+
 const { exec } = require('child_process')
 const { promisify } = require('util')
 const execPromise = promisify(exec)
@@ -29,7 +32,7 @@ const args = arg({
 })
 
 if (args['--version']) {
-  ; (async () => {
+  ;(async () => {
     const pkg = require(path.join(__dirname, 'package.json'))
     console.log(`NextWS v${pkg.version}`)
     process.exit(0)
@@ -42,7 +45,7 @@ if (args['--help']) {
 }
 
 if (args['--docs']) {
-  utils.showDocs()
+  logTable()
   process.exit(0)
 }
 
@@ -85,7 +88,7 @@ async function init() {
   const basePath = path.join(cwd(), projectName)
   const autogen = project.autogen
   let installNodeModules = { value: true }
-  let manual = { autoenv: { value: true }, compose: { value: true }, primary: ''}
+  let manual = { autoenv: { value: true }, compose: { value: true }, primary: '' }
   let primary = ''
   if (autogen === false) {
     manual = await prompts([
@@ -253,7 +256,22 @@ async function init() {
     }
 
     await utils.sleep(2000)
-    utils.showDocs(projectName, primary, img2ico.value, installNodeModules.value)
+    logTable({
+      title: 'Welcome to NextWS',
+      subtitle: 'NextJS + Websocket + Strapi -- Dockerized',
+      content: {
+        Name: 'NextWS',
+        Icon: 'default',
+        Color: 'default'
+      },
+      footerHeaders: { Service: 'URL' },
+      footer: {
+        'NextJS - prod': 'http://localhost:3100',
+        'NextJS - dev': 'http://localhost:3101',
+        'Strapi': 'http://localhost:1337'
+      },
+      afterText: 'by Blade'
+    })
   } catch (error) {
     console.log(error)
     spinner.fail(error)
