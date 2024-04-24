@@ -34,7 +34,7 @@ export function showHelp() {
   )
 }
 
-export function replaceStrings(name, primary) {
+export function replaceStrings(name) {
   return new Promise((resolve, reject) => {
     const options = [
       {
@@ -43,35 +43,14 @@ export function replaceStrings(name, primary) {
         to: name.toLowerCase()
       },
       {
-        files: `${name}/package.json`,
-        from: /"version": "\d.\d.\d"/g,
+        files: `${name}/frontend/package.json`,
+        from: /"version"\s*:\s*"\d+\\.\d+\\.\d+"/g,
         to: `"version": "0.0.1"`
       }
-      // {
-      //   files: `${name}/package.json`,
-      //   from: /"description": "(.*?)"/g,
-      //   to: `"description": "${name} 0.0.1 - supercharged with nextws (by Blade)"`,
-      // },
     ]
-    // if (!titlebar) {
-    //   options.push({
-    //     files: `${name}/package.json`,
-    //     from: /"NEXTWS_CUSTOM_TITLEBAR": true/g,
-    //     to: `"NEXTWS_CUSTOM_TITLEBAR": false`,
-    //   })
-    // }
 
-    if (primary !== '') {
-      options.push({
-        files: `${name}/package.json`,
-        from: /"NEXTWS_PRIMARY_COLOR": "default"/g,
-        to: `"NEXTWS_PRIMARY_COLOR": "${primary}"`
-      })
-    }
-    // const customChalk = new Chalk({ level: 4 });
     for (let index = 0; index < options.length; index++) {
       try {
-        // options[index].from = customChalk.styles.reset(options[index].from); // Reset styles before replacement
         const results = replace.sync(options[index])
         if (!results) return
         resolve(true)
@@ -81,41 +60,6 @@ export function replaceStrings(name, primary) {
       }
     }
   })
-}
-
-export function handleIcon(name) {
-  const pngToIco = require('png-to-ico')
-  const png2icons = require('png2icons')
-  const input = fs.readFileSync(`${name}/icon.png`)
-  return new Promise((resolve, reject) => {
-    pngToIco(`${name}/icon.png`)
-      .then((buf) => {
-        fs.writeFileSync(`${name}/resources/icon.ico`, buf)
-        fs.writeFileSync(`${name}/resources/installerIcon.ico`, buf)
-        fs.writeFileSync(`${name}/resources/uninstallerIcon.ico`, buf)
-        fs.rmSync(`${name}/resources/icon.icns`, { recursive: true, force: true })
-        const output = png2icons.createICNS(input, png2icons.BILINEAR, 0)
-        if (output) {
-          fs.writeFileSync(`${name}/resources/icon.icns`, output)
-        }
-        resize(path.join(name, 'icon.png'), `${name}/resources/icon.png`)
-        resize(path.join(name, 'icon.png'), `${name}/packages/renderer/src/assets/icon.png`)
-        fs.rmSync(path.join(cwd, name, 'icon.png'), { recursive: true, force: true })
-        resolve()
-      })
-      .catch((error) => {
-        console.log(error)
-        reject()
-      })
-  })
-}
-
-export async function resize(source, target, size = 256) {
-  const jimp = require('jimp')
-  const image = await jimp.read(source)
-  image.resize(size, jimp.AUTO)
-  await image.writeAsync(target || source)
-  return true
 }
 
 export function gitClone(repo, projectName, branch) {
@@ -194,8 +138,7 @@ export async function generateEnv(input = '.env.example', output = '.env', autog
   const lines = fileStream.split('\n')
 
   const categories = [
-    { name: 'General', filter: (key) => key.startsWith('NEXT_PUBLIC_') },
-    { name: 'Ports', filter: (key) => key.endsWith('_PORT') },
+    { name: 'URL & Ports', filter: (key) => key.endsWith('_PORT') || key.startsWith('NEXT_PUBLIC_') },
     { name: 'Database', filter: (key) => key.includes('DATABASE') && !key.endsWith('_PORT') },
     { name: 'Advanced', filter: (key) => ['NODE_ENV', 'HOST'].includes(key) },
     { name: 'Docker', filter: (key) => key.includes('DOCKER') },
