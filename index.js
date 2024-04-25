@@ -51,7 +51,6 @@ async function init() {
   console.clear()
   console.log(`${chalk.bold.red('Create Stack NextJS + Strapi + Websocket')}${chalk.dim.grey(' by Blade')}`)
 
-  // Check if dock is installed
   const docker = await utils.isDockerRunning()
   if (!docker) {
     console.log(chalk.bold.red('Docker is not running. Running in lite mode.'))
@@ -144,7 +143,6 @@ async function init() {
     }
 
     spinner.create(chalk.bold.yellow('Installing Node Modules... (get a coffee)'))
-
     if (process.platform === 'win32') {
       await execPromise(`cd ${basePath}\\frontend && npm install`)
       await execPromise(`cd ${basePath}\\frontend && npx next-ws-cli@latest patch --yes`)
@@ -156,15 +154,11 @@ async function init() {
 
     if (docker) {
       const basePath = path.join(cwd(), projectName)
-      // console.log('EYYYY', manual)
       if ((manual.compose === true || manual.compose.value === true) && project.autogen === false) {
-        // spinner.create(chalk.bold.yellow('Configuring Docker Compose...'))
         await utils.configureDockerCompose(`${basePath}/docker-compose.yml`)
-        // spinner.clear()
       }
 
       spinner.create(chalk.bold.yellow('Starting Docker Containers... (First time takes ages, get another coffee or two)'))
-
       await utils.dockerNetwork(process.env.DOCKER_NETWORK)
       await execPromise(`cd ${basePath} && docker-compose up -d`)
       spinner.clear()
