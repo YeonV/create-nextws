@@ -72,6 +72,7 @@ export function gitClone(repo, projectName, branch) {
         reject(code)
         return
       }
+      fs.rmSync(path.join(cwd(), projectName, '.git'), { recursive: true, force: true })
       resolve(signal)
     })
   })
@@ -231,3 +232,5 @@ export async function configureDockerCompose(filePath = 'docker-compose.yml') {
   spinner.clear()
   return await fsp.writeFile(filePath, newDockerCompose)
 }
+
+export const dirSep = process.platform === 'win32' ? '\\' : '/'

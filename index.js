@@ -13,11 +13,11 @@ import { URL } from 'url'
 import { cwd } from 'process'
 import { config as dotEnv } from 'dotenv'
 const require = createRequire(import.meta.url)
-const { logTable } = terminalTools
+const { logTable, yesNo } = terminalTools
+const { dirSep, showHelp, isDockerRunning, sleep, gitClone, replaceStrings, generateEnv, configureDockerCompose, dockerNetwork } = utils
 const { exec } = require('child_process')
 const { promisify } = require('util')
 const execPromise = promisify(exec)
-
 const __dirname = new URL('.', import.meta.url).pathname
 
 const args = arg({
@@ -38,7 +38,7 @@ if (args['--version']) {
 }
 
 if (args['--help']) {
-  utils.showHelp()
+  showHelp()
   process.exit(0)
 }
 
@@ -51,12 +51,12 @@ async function init() {
   console.clear()
   console.log(`${chalk.bold.red('Create Stack NextJS + Strapi + Websocket')}${chalk.dim.grey(' by Blade')}`)
 
-  const docker = await utils.isDockerRunning()
+  const docker = await isDockerRunning()
   if (!docker) {
     console.log(chalk.bold.red('Docker is not running. Running in lite mode.'))
     console.log(chalk.bold.red('No Strapi, no Containers. Just barebones NextJS + NextWS.'))
     console.log(chalk.bold.red('CTRL+C to exit. Autostart in 2 seconds..'))
-    await utils.sleep(2000)
+    await sleep(2000)
   }
 
   const project = await prompts([
@@ -69,43 +69,19 @@ async function init() {
         return value.match(pattern) ? true : 'Invalid project name'
       }
     },
-    {
-      type: 'select',
-      name: 'autogen',
-      message: chalk.bold.yellow('Automatic Mode:'),
-      choices: [
-        { title: 'Yes', description: 'Yes', value: true },
-        { title: 'No', description: 'No, let me customize it', value: false }
-      ]
-    }
+    yesNo('autogen', 'Automatic Mode:')
   ])
 
   if (!project.projectname) return
   const projectName = project.projectname
   const basePath = path.join(cwd(), projectName)
   const autogen = project.autogen
-  let manual = { autoenv: { value: true }, compose: { value: true } }
 
+  let manual = { autoenv: { value: true }, compose: { value: true } }
   if (autogen === false) {
     manual = await prompts([
-      {
-        type: 'select',
-        name: 'autoenv',
-        message: chalk.bold.yellow('Auto-Generate .env:'),
-        choices: [
-          { title: 'No', description: 'No', value: false },
-          { title: 'Yes', description: 'Yes', value: true }
-        ]
-      },
-      {
-        type: 'select',
-        name: 'compose',
-        message: chalk.bold.yellow('Customize compose service names?'),
-        choices: [
-          { title: 'No', description: 'No', value: false },
-          { title: 'Yes', description: 'Yes', value: true }
-        ]
-      }
+      yesNo('autoenv', 'Auto-Generate .env:'), // { autoenv: true }
+      yesNo('compose', 'Customize compose service names?')
     ])
   }
 
@@ -115,56 +91,37 @@ async function init() {
       process.exit(1)
     }
     spinner.create(chalk.bold.yellow('Downloading and extracting...'))
-    await utils.gitClone('https://github.com/yeonv/meeting', projectName)
-    fs.rmSync(path.join(cwd(), projectName, '.git'), {
-      recursive: true,
-      force: true
-    })
+    await gitClone('https://github.com/yeonv/meeting', projectName)
+    // fs.rmSync(path.join(cwd(), projectName, '.git'), { recursive: true, force: true })
     spinner.clear()
-    spinner.create(chalk.bold.yellow('Configuring App...'))
-    const configured = await utils.replaceStrings(projectName)
-    if (configured) {
-      spinner.clear()
-    }
-    if (process.platform === 'win32') {
-      await utils.generateEnv(`${basePath}\\.env.example`, `${basePath}\\.env`, project.autogen || manual.autoenv.value || manual.autoenv)
-      await execPromise(`copy ${basePath}\\.env ${basePath}\\frontend\\.env`)
-      await execPromise(`copy ${basePath}\\.env ${basePath}\\backend\\.env`)
-    } else {
-      await utils.generateEnv(`${basePath}/.env.example`, `${basePath}/.env`, project.autogen || manual.autoenv.value || manual.autoenv)
-      await execPromise(`cp ${basePath}/.env ${basePath}/frontend/.env`)
-      await execPromise(`cp ${basePath}/.env ${basePath}/backend/.env`)
-    }
 
-    if (process.platform === 'win32') {
-      dotEnv({ path: `${basePath}\\.env` })
-    } else {
-      dotEnv({ path: `${basePath}/.env` })
-    }
+    spinner.create(chalk.bold.yellow('Configuring App...'))
+    await replaceStrings(projectName)
+    spinner.clear()
+
+    await generateEnv(`${basePath}${dirSep}.env.example`, `${basePath}${dirSep}.env`, project.autogen || manual.autoenv.value || manual.autoenv)
+    await execPromise(`copy ${basePath}${dirSep}.env ${basePath}${dirSep}frontend${dirSep}.env`)
+    await execPromise(`copy ${basePath}${dirSep}.env ${basePath}${dirSep}backend${dirSep}.env`)
+
+    dotEnv({ path: `${basePath}${dirSep}.env` })
 
     spinner.create(chalk.bold.yellow('Installing Node Modules... (get a coffee)'))
-    if (process.platform === 'win32') {
-      await execPromise(`cd ${basePath}\\frontend && npm install`)
-      await execPromise(`cd ${basePath}\\frontend && npx next-ws-cli@latest patch --yes`)
-    } else {
-      await execPromise(`cd ${basePath}/frontend && npm install`)
-      await execPromise(`cd ${basePath}/frontend && npx next-ws-cli@latest patch --yes`)
-    }
+    await execPromise(`cd ${basePath}${dirSep}frontend && npm install`)
+    await execPromise(`cd ${basePath}${dirSep}frontend && npx next-ws-cli@latest patch --yes`)
     spinner.clear()
 
     if (docker) {
-      const basePath = path.join(cwd(), projectName)
       if ((manual.compose === true || manual.compose.value === true) && project.autogen === false) {
-        await utils.configureDockerCompose(`${basePath}/docker-compose.yml`)
+        await configureDockerCompose(`${basePath}/docker-compose.yml`)
       }
 
       spinner.create(chalk.bold.yellow('Starting Docker Containers... (First time takes ages, get another coffee or two)'))
-      await utils.dockerNetwork(process.env.DOCKER_NETWORK)
+      await dockerNetwork(process.env.DOCKER_NETWORK)
       await execPromise(`cd ${basePath} && docker-compose up -d`)
       spinner.clear()
     }
 
-    await utils.sleep(2000)
+    await sleep(2000)
     logTable({
       title: 'Welcome to NextWS',
       subtitle: 'NextJS + Websocket + Strapi -- Dockerized',
