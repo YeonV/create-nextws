@@ -134,19 +134,19 @@ export async function dockerNetwork(name) {
   }
 }
 
-export async function generateEnv(input = '.env.example', output = '.env', autogen = false) {
+export async function generateEnv(input = '.env.example', output = '.env', mode = 'manual', portsStartingRange = 3000) {
   const fileStream = await fsp.readFile(input, 'utf-8')
   const lines = fileStream.split('\n')
 
   const categories = [
-    { name: 'URL & Ports', filter: (key) => key.endsWith('_PORT') || key.startsWith('NEXT_PUBLIC_') },
+    { name: 'URL & Ports', filter: (key) => key.endsWith('_PORT') || ['NEXT_PUBLIC_NEXTJS_URL', 'NEXT_PUBLIC_STRAPI_BACKEND_URL'].includes(key) },
     { name: 'Database', filter: (key) => key.includes('DATABASE') && !key.endsWith('_PORT') },
     { name: 'Advanced', filter: (key) => ['NODE_ENV', 'HOST'].includes(key) },
     { name: 'Docker', filter: (key) => key.includes('DOCKER') },
     { name: 'Letsencrypt', filter: (key) => ['LETSENCRYPT_EMAIL', 'BASE_DOMAIN', 'STRAPI_SUB_DOMAIN', 'SUB_DOMAIN'].includes(key) }
   ]
   let selectedCategories = { value: [] }
-  if (autogen === false) {
+  if (mode === 'manual') {
     selectedCategories = await prompts([
       {
         type: 'multiselect',
@@ -160,21 +160,32 @@ export async function generateEnv(input = '.env.example', output = '.env', autog
   let newEnv = ''
 
   for (const line of lines) {
-    if (line.startsWith('#')) {
+    if (line.startsWith('#') && !line.startsWith('#WIN') && !line.startsWith('#MAC')) {
       continue
     }
     if (line.trim() === '') {
       newEnv += `\n`
       continue
     }
-
+    if (process.platform === 'win32') {
+      if (line.startsWith('#WIN')) {
+        newEnv += `${line.replace('#WIN ', '')}\n`
+        continue
+      }
+    }
+    if (process.platform === 'darwin') {
+      if (line.startsWith('#MAC')) {
+        newEnv += `${line.replace('#MAC ', '')}\n`
+        continue
+      }
+    }
     let [key, defaultValue] = line.trim().split('=')
     defaultValue = defaultValue.replace(/"/g, '') // remove quotes
 
     let value = ''
     if (defaultValue.startsWith('XXXXXXX')) {
       value = crypto.randomBytes(Math.ceil(defaultValue.length / 2)).toString('hex')
-    } else if (!autogen && selectedCategories.value.some((category) => category.filter(key))) {
+    } else if (mode === 'manual' && selectedCategories.value.some((category) => category.filter(key))) {
       const userInput = await prompts([
         {
           type: 'text',
@@ -184,6 +195,13 @@ export async function generateEnv(input = '.env.example', output = '.env', autog
         }
       ])
       value = userInput[key] || defaultValue
+    } else if (mode === 'smart' && key.endsWith('NEXT_PUBLIC_NEXTJS_URL')) {
+      value = `http://localhost:${portsStartingRange}`
+    } else if (mode === 'smart' && key.endsWith('NEXT_PUBLIC_STRAPI_BACKEND_URL')) {
+      value = `http://localhost:${portsStartingRange + 4}`
+    } else if (mode === 'smart' && key.endsWith('_PORT')) {
+      value = portsStartingRange
+      portsStartingRange++
     } else {
       value = defaultValue
     }
@@ -196,7 +214,7 @@ export async function generateEnv(input = '.env.example', output = '.env', autog
   return await fsp.writeFile(output, newEnv)
 }
 
-export async function configureDockerCompose(filePath = 'docker-compose.yml') {
+export async function configureDockerCompose(filePath = 'docker-compose.yml', name = 'yz', mode = 'manual') {
   // Read the docker-compose.yml file
   const dockerCompose = fs.readFileSync(filePath, 'utf-8')
 
@@ -209,17 +227,27 @@ export async function configureDockerCompose(filePath = 'docker-compose.yml') {
     yzstrapiAdminer: 'Strapi - Adminer',
     yzstrapiweb: 'Strapi - Web'
   }
-  console.log(chalk.bold.yellow('✔ Set new service names:'))
-  // Ask the user for the new service names
-  const responses = await prompts(
-    services.map((service) => ({
-      type: 'text',
-      name: service,
-      message: chalk.bold.yellow(`Set ${chalk.bold.cyan(serviceNames[service])}:`),
-      initial: service
-    }))
-  )
-
+  let responses = {}
+  if (mode === 'smart') {
+    responses = {
+      yznextdev: `${name}-next-dev`,
+      yznextprod: `${name}-next-prod`,
+      yzstrapiDB: `${name}-strapi-db`,
+      yzstrapiAdminer: `${name}-strapi-adminer`,
+      yzstrapiweb: `${name}-strapi-web`
+    }
+  } else {
+    console.log(chalk.bold.yellow('✔ Set new service names:'))
+    // Ask the user for the new service names
+    responses = await prompts(
+      services.map((service) => ({
+        type: 'text',
+        name: service,
+        message: chalk.bold.yellow(`Set ${chalk.bold.cyan(serviceNames[service])}:`),
+        initial: service
+      }))
+    )
+  }
   // Replace the service names in the docker-compose.yml file
   let newDockerCompose = dockerCompose
   for (const service of services) {

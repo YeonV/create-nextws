@@ -58,6 +58,11 @@ async function init() {
     console.log(chalk.bold.red('CTRL+C to exit. Autostart in 2 seconds..'))
     await sleep(2000)
   }
+  const modes = [
+    { name: 'Automatic', value: 'automatic' },
+    { name: 'Manual', value: 'manual' },
+    { name: 'Smart', value: 'smart' }
+  ]
 
   const project = await prompts([
     {
@@ -69,20 +74,37 @@ async function init() {
         return value.match(pattern) ? true : 'Invalid project name'
       }
     },
-    yesNo('autogen', 'Automatic Mode:')
-  ])
-
+    {
+      type: 'select',
+      name: 'mode',
+      message: chalk.bold.yellow('Select Mode:'),
+      choices: modes.map((mode) => ({ title: mode.name, value: mode.value }))
+    },
+    ])
+  
   if (!project.projectname) return
   const projectName = project.projectname
   const basePath = path.join(cwd(), projectName)
-  const autogen = project.autogen
+  const copy = process.platform === 'win32' ? 'copy' : 'cp'
 
   let manual = { autoenv: { value: true }, compose: { value: true } }
-  if (autogen === false) {
+  if (project.mode === 'manual') {
     manual = await prompts([
       yesNo('autoenv', 'Auto-Generate .env:'), // { autoenv: true }
       yesNo('compose', 'Customize compose service names?')
     ])
+  }
+  let portsStartingRange = 3000
+  if (project.mode === 'smart') {
+    const p = await prompts([
+      {
+        type: 'number',
+        name: 'value',
+        message: chalk.bold.yellow('Starting Port (will use 5 ports):'),
+        initial: 3000
+      }
+    ])
+    portsStartingRange = p.value
   }
 
   try {
@@ -99,9 +121,9 @@ async function init() {
     await replaceStrings(projectName)
     spinner.clear()
 
-    await generateEnv(`${basePath}${dirSep}.env.example`, `${basePath}${dirSep}.env`, project.autogen || manual.autoenv.value || manual.autoenv)
-    await execPromise(`copy ${basePath}${dirSep}.env ${basePath}${dirSep}frontend${dirSep}.env`)
-    await execPromise(`copy ${basePath}${dirSep}.env ${basePath}${dirSep}backend${dirSep}.env`)
+    await generateEnv(`${basePath}${dirSep}.env.example`, `${basePath}${dirSep}.env`, project.mode, portsStartingRange)
+    await execPromise(`${copy} ${basePath}${dirSep}.env ${basePath}${dirSep}frontend${dirSep}.env`)
+    await execPromise(`${copy} ${basePath}${dirSep}.env ${basePath}${dirSep}backend${dirSep}.env`)
 
     dotEnv({ path: `${basePath}${dirSep}.env` })
 
@@ -111,8 +133,8 @@ async function init() {
     spinner.clear()
 
     if (docker) {
-      if ((manual.compose === true || manual.compose.value === true) && project.autogen === false) {
-        await configureDockerCompose(`${basePath}/docker-compose.yml`)
+      if ((manual.compose === true || manual.compose.value === true) && project.mode !== 'automatic') {
+        await configureDockerCompose(`${basePath}/docker-compose.yml`, projectName, project.mode)
       }
 
       spinner.create(chalk.bold.yellow('Starting Docker Containers... (First time takes ages, get another coffee or two)'))
@@ -133,7 +155,9 @@ async function init() {
       footer: {
         'NextJS - prod': `http://localhost:${process.env.NEXT_PORT || 3100}`,
         'NextJS - dev': `http://localhost:${process.env.NEXT_DEV_PORT || 3101}`,
-        'Strapi': `http://localhost:${process.env.STRAPI_PORT || 1337}`
+        'Strapi': `http://localhost:${process.env.STRAPI_PORT || 1337}`,
+        '↳ Login Email': process.env.INIT_ADMIN_EMAIL || 'admin@strapi.com',
+        '↳ Password': process.env.INIT_ADMIN_PASSWORD || 'admin'
       },
       afterText: 'by Blade'
     })
