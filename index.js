@@ -79,9 +79,9 @@ async function init() {
       name: 'mode',
       message: chalk.bold.yellow('Select Mode:'),
       choices: modes.map((mode) => ({ title: mode.name, value: mode.value }))
-    },
-    ])
-  
+    }
+  ])
+
   if (!project.projectname) return
   const projectName = project.projectname
   const basePath = path.join(cwd(), projectName)
@@ -95,16 +95,32 @@ async function init() {
     ])
   }
   let portsStartingRange = 3000
+  let providers = []
   if (project.mode === 'smart') {
     const p = await prompts([
       {
         type: 'number',
-        name: 'value',
+        name: 'port',
         message: chalk.bold.yellow('Starting Port (will use 5 ports):'),
         initial: 3000
+      },
+      yesNo('configProdivers', 'Pre-configure providers?'),
+      {
+        type: (prev) => (prev === true ? 'multiselect' : null),
+        name: 'providers',
+        message: chalk.bold.yellow('Select Providers to configure:'),
+        choices: [
+          { title: 'Github', value: 'github' },
+          { title: 'Google', value: 'google' },
+          { title: 'Twitter', value: 'twitter' },
+          { title: 'Discord', value: 'discord' },
+          { title: 'Spotify', value: 'spotify' },
+          { title: 'Battlenet', value: 'battlenet' }
+        ]
       }
     ])
-    portsStartingRange = p.value
+    portsStartingRange = p.port
+    providers = p.providers
   }
 
   try {
@@ -121,7 +137,7 @@ async function init() {
     await replaceStrings(projectName)
     spinner.clear()
 
-    await generateEnv(`${basePath}${dirSep}.env.example`, `${basePath}${dirSep}.env`, project.mode, portsStartingRange)
+    await generateEnv(`${basePath}${dirSep}.env.example`, `${basePath}${dirSep}.env`, project.mode, portsStartingRange, providers)
     await execPromise(`${copy} ${basePath}${dirSep}.env ${basePath}${dirSep}frontend${dirSep}.env`)
     await execPromise(`${copy} ${basePath}${dirSep}.env ${basePath}${dirSep}backend${dirSep}.env`)
 

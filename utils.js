@@ -134,7 +134,59 @@ export async function dockerNetwork(name) {
   }
 }
 
-export async function generateEnv(input = '.env.example', output = '.env', mode = 'manual', portsStartingRange = 3000) {
+export async function generateEnv(input = '.env.example', output = '.env', mode = 'manual', portsStartingRange = 3000, providers = []) {
+  let providerConfigs = {}
+  for (const provider of providers) {
+    const idKey = provider.toUpperCase() + '_ID'
+    const secretKey = provider.toUpperCase() + '_SECRET'
+    let authAppUrl = ''
+    switch (provider) {
+      case 'github':
+        authAppUrl = 'https://github.com/settings/applications/new'
+        break
+      case 'google':
+        authAppUrl = 'https://console.developers.google.com/apis/credentials'
+        break
+      case 'twitter':
+        authAppUrl = 'https://developer.twitter.com/en/apps'
+        break
+      case 'discord':
+        authAppUrl = 'https://discord.com/developers/applications'
+        break
+      case 'spotify':
+        authAppUrl = 'https://developer.spotify.com/dashboard/applications'
+        break
+      case 'battlenet':
+        authAppUrl = 'https://develop.battle.net/access/clients'
+        break
+    }
+    console.log(chalk.bold.cyan('→ ') + chalk.bold.yellow('Create new app: ') + chalk.bold.cyan(authAppUrl))
+    console.log(
+      chalk.bold.cyan('↳ ') + chalk.bold.yellow('Homepage URL:   ') + chalk.bold.cyan(`http://localhost:${portsStartingRange}/api/auth/callback/google`)
+    )
+    console.log(chalk.bold.cyan('↳ ') + chalk.bold.yellow('Auth CB URL:    ') + chalk.bold.cyan(`http://localhost:${portsStartingRange}`))
+
+    const p = await prompts([
+      {
+        type: 'text',
+        name: 'clientId',
+        message: chalk.bold.yellow(`${provider} Client ID:`),
+        instructions: 'https://github.com/settings/applications/new'
+      },
+      {
+        type: 'text',
+        name: 'clientSecret',
+        message: chalk.bold.yellow(`${provider} Client Secret:`)
+      }
+    ])
+    providerConfigs = {
+      ...providerConfigs,
+      ...{
+        [idKey]: p.clientId,
+        [secretKey]: p.clientSecret
+      }
+    }
+  }
   const fileStream = await fsp.readFile(input, 'utf-8')
   const lines = fileStream.split('\n')
 
@@ -203,7 +255,7 @@ export async function generateEnv(input = '.env.example', output = '.env', mode 
       value = portsStartingRange
       portsStartingRange++
     } else {
-      value = defaultValue
+      providerConfigs[key] ? (value = providerConfigs[key]) : (value = defaultValue)
     }
 
     newEnv += `${key}="${value}"\n`
@@ -255,10 +307,21 @@ export async function configureDockerCompose(filePath = 'docker-compose.yml', na
     newDockerCompose = newDockerCompose.replace(regex, responses[service])
   }
 
+  let newerDockerCompose = ''
+
+  for (const line of newDockerCompose.split('\n')) {
+    if (line.startsWith('#MAC') && process.platform === 'darwin') {
+      newerDockerCompose += line.replace('#MAC - ', '') + '\n'
+    } else if (line.startsWith('#WIN') && process.platform === 'win32') {
+      newerDockerCompose += line.replace('#WIN - ', '') + '\n'
+    } else {
+      newerDockerCompose += line + '\n'
+    }
+  }
   // Write the new docker-compose.yml file
   spinner.create(chalk.bold.yellow('Successfully created docker-compose.yml'))
   spinner.clear()
-  return await fsp.writeFile(filePath, newDockerCompose)
+  return await fsp.writeFile(filePath, newerDockerCompose)
 }
 
 export const dirSep = process.platform === 'win32' ? '\\' : '/'
