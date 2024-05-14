@@ -15,7 +15,55 @@ import * as spinner from './spinner.js'
 const { exec } = require('child_process')
 const { promisify } = require('util')
 const execPromise = promisify(exec)
+const net = require('net')
 
+/**
+ * Checks if a given port is open.
+ * @param {number} port - The port to check.
+ * @returns {Promise<boolean>} - A promise that resolves with a boolean indicating whether the port is open.
+ */
+export function checkPort(port) {
+  return new Promise((resolve, reject) => {
+    const server = net
+      .createServer()
+      .once('error', (err) => (err.code === 'EADDRINUSE' ? resolve(false) : reject(err)))
+      .once('listening', () => server.once('close', () => resolve(true)).close())
+      .listen(port)
+  })
+}
+
+/**
+ * Checks a range of ports for availability.
+ * @param {number} start - The starting port number.
+ * @param {number} count - The number of ports to check.
+ * @returns {Promise<Array<{port: number, isOpen: boolean}>>} - A promise that resolves with an array of port status objects.
+ */
+export async function checkPorts(start, count) {
+  const openPorts = []
+  for (let i = start; i < start + count; i++) {
+    const isOpen = await checkPort(i)
+    openPorts.push({ port: i, isOpen })
+  }
+
+  if (openPorts.some((port) => port.isOpen === false)) {
+    console.error(chalk.bold.red('Ports are not available. Exiting...'))
+    console.error(
+      chalk.bold.cyan(
+        openPorts
+          .filter((port) => port.isOpen === false)
+          .map((port) => port.port)
+          .join('\n')
+      )
+    )
+    process.exit(1)
+  }
+
+  return openPorts
+}
+
+/**
+ * Displays the help message.
+ */
 export function showHelp() {
   console.clear()
   console.log(
@@ -34,7 +82,12 @@ export function showHelp() {
   )
 }
 
-export function replaceStrings(name) {
+/**
+ * Replaces certain strings in specific files.
+ * @param {string} name - The project name and version.
+ * @returns {Promise<boolean>} - A promise that resolves when the operation is complete.
+ */
+export function setPackageJson(name) {
   return new Promise((resolve, reject) => {
     const options = [
       {
@@ -62,6 +115,13 @@ export function replaceStrings(name) {
   })
 }
 
+/**
+ * Clones a git repository.
+ * @param {string} repo - The repository to clone.
+ * @param {string} projectName - The name of the project.
+ * @param {string} [branch] - The branch to clone.
+ * @returns {Promise<any>} - A promise that resolves when the operation is complete.
+ */
 export function gitClone(repo, projectName, branch) {
   return new Promise((resolve, reject) => {
     const _branch = branch ? ['-b', branch] : []
@@ -78,6 +138,10 @@ export function gitClone(repo, projectName, branch) {
   })
 }
 
+/**
+ * Determines the available package manager.
+ * @returns {Promise<string>} - A promise that resolves with the name of the available package manager.
+ */
 export async function pm() {
   const { promisify } = require('util')
   const { exec: defaultExec } = require('child_process')
@@ -101,12 +165,21 @@ export async function pm() {
   return pm
 }
 
+/**
+ * Pauses execution for a specified amount of time.
+ * @param {number} ms - The amount of time to sleep in milliseconds.
+ * @returns {Promise<void>} - A promise that resolves after the specified amount of time.
+ */
 export function sleep(ms) {
   return new Promise((resolve) => {
     setTimeout(resolve, ms)
   })
 }
 
+/**
+ * Checks if Docker is running.
+ * @returns {Promise<boolean>} - A promise that resolves with a boolean indicating whether Docker is running.
+ */
 export async function isDockerRunning() {
   try {
     await execPromise('docker ps')
@@ -118,6 +191,25 @@ export async function isDockerRunning() {
     return false
   }
 }
+
+/**
+ * Checks if Docker is running
+ * @returns {Promise<boolean>} - A promise that resolves with a boolean indicating whether Docker is running.
+ */
+export async function checkDocker() {
+  const docker = await isDockerRunning()
+  if (!docker) {
+    console.log(chalk.bold.red('Docker is not running. Running in lite mode. No Strapi, no Containers. Just barebones NextJS + NextWS.'))
+    console.log(chalk.bold.red('CTRL+C to exit. Autostart in 2 seconds..'))
+    await sleep(2000)
+  }
+  return docker
+}
+
+/**
+ * Checks if a Docker network exists, and creates it if it doesn't.
+ * @param {string} name - The name of the Docker network.
+ */
 export async function dockerNetwork(name) {
   try {
     // Check if the network exists
@@ -134,6 +226,15 @@ export async function dockerNetwork(name) {
   }
 }
 
+/**
+ * Generates an environment file (.env) based on a template (.env.example).
+ * @param {string} [input='.env.example'] - The input file path.
+ * @param {string} [output='.env'] - The output file path.
+ * @param {string} [mode='manual'] - The mode of operation ('manual' or 'smart').
+ * @param {number} [portsStartingRange=3000] - The starting range for the ports.
+ * @param {Array<string>} [providers=[]] - The list of providers.
+ * @returns {Promise<void>} - A promise that resolves when the operation is complete.
+ */
 export async function generateEnv(input = '.env.example', output = '.env', mode = 'manual', portsStartingRange = 3000, providers = []) {
   let providerConfigs = {}
   for (const provider of providers) {
@@ -266,6 +367,13 @@ export async function generateEnv(input = '.env.example', output = '.env', mode 
   return await fsp.writeFile(output, newEnv)
 }
 
+/**
+ * Configures a Docker Compose file.
+ * @param {string} [filePath='docker-compose.yml'] - The path to the Docker Compose file.
+ * @param {string} [name='yz'] - The name to use for the services.
+ * @param {string} [mode='manual'] - The mode of operation ('manual' or 'smart').
+ * @returns {Promise<void>} - A promise that resolves when the operation is complete.
+ */
 export async function configureDockerCompose(filePath = 'docker-compose.yml', name = 'yz', mode = 'manual') {
   // Read the docker-compose.yml file
   const dockerCompose = fs.readFileSync(filePath, 'utf-8')
@@ -324,4 +432,8 @@ export async function configureDockerCompose(filePath = 'docker-compose.yml', na
   return await fsp.writeFile(filePath, newerDockerCompose)
 }
 
+/**
+ * The directory separator for the current platform.
+ * @type {string}
+ */
 export const dirSep = process.platform === 'win32' ? '\\' : '/'

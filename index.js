@@ -14,7 +14,7 @@ import { cwd } from 'process'
 import { config as dotEnv } from 'dotenv'
 const require = createRequire(import.meta.url)
 const { logTable, yesNo } = terminalTools
-const { dirSep, showHelp, isDockerRunning, sleep, gitClone, replaceStrings, generateEnv, configureDockerCompose, dockerNetwork } = utils
+const { dirSep, showHelp, checkDocker, sleep, gitClone, setPackageJson, generateEnv, configureDockerCompose, dockerNetwork, checkPorts } = utils
 const { exec } = require('child_process')
 const { promisify } = require('util')
 const execPromise = promisify(exec)
@@ -51,17 +51,12 @@ async function init() {
   console.clear()
   console.log(`${chalk.bold.red('Create Stack NextJS + Strapi + Websocket')}${chalk.dim.grey(' by Blade')}`)
 
-  const docker = await isDockerRunning()
-  if (!docker) {
-    console.log(chalk.bold.red('Docker is not running. Running in lite mode.'))
-    console.log(chalk.bold.red('No Strapi, no Containers. Just barebones NextJS + NextWS.'))
-    console.log(chalk.bold.red('CTRL+C to exit. Autostart in 2 seconds..'))
-    await sleep(2000)
-  }
+  const docker = await checkDocker()
+
   const modes = [
+    { name: 'Smart', value: 'smart' },
     { name: 'Automatic', value: 'automatic' },
-    { name: 'Manual', value: 'manual' },
-    { name: 'Smart', value: 'smart' }
+    { name: 'Manual', value: 'manual' }
   ]
 
   const project = await prompts([
@@ -89,19 +84,18 @@ async function init() {
 
   let manual = { autoenv: { value: true }, compose: { value: true } }
   if (project.mode === 'manual') {
-    manual = await prompts([
-      yesNo('autoenv', 'Auto-Generate .env:'), // { autoenv: true }
-      yesNo('compose', 'Customize compose service names?')
-    ])
+    manual = await prompts([yesNo('autoenv', 'Auto-Generate .env:'), yesNo('compose', 'Customize compose service names?')])
   }
   let portsStartingRange = 3000
   let providers = []
   if (project.mode === 'smart') {
+    const providerOptions = ['github', 'google', 'twitter', 'discord', 'spotify', 'battlenet']
+
     const p = await prompts([
       {
         type: 'number',
         name: 'port',
-        message: chalk.bold.yellow('Starting Port (will use 5 ports):'),
+        message: chalk.bold.yellow('Starting Port (will use 5 ports for different services):'),
         initial: 3000
       },
       yesNo('configProdivers', 'Pre-configure providers?'),
@@ -109,19 +103,14 @@ async function init() {
         type: (prev) => (prev === true ? 'multiselect' : null),
         name: 'providers',
         message: chalk.bold.yellow('Select Providers to configure:'),
-        choices: [
-          { title: 'Github', value: 'github' },
-          { title: 'Google', value: 'google' },
-          { title: 'Twitter', value: 'twitter' },
-          { title: 'Discord', value: 'discord' },
-          { title: 'Spotify', value: 'spotify' },
-          { title: 'Battlenet', value: 'battlenet' }
-        ]
+        choices: providerOptions.map((provider) => ({ title: provider.charAt(0).toUpperCase() + provider.slice(1), value: provider }))
       }
     ])
+
     portsStartingRange = p.port
     providers = p.providers
   }
+  await checkPorts(portsStartingRange, 5)
 
   try {
     if (fs.existsSync(projectName) && fs.statSync(projectName).isDirectory()) {
@@ -134,7 +123,7 @@ async function init() {
     spinner.clear()
 
     spinner.create(chalk.bold.yellow('Configuring App...'))
-    await replaceStrings(projectName)
+    await setPackageJson(projectName)
     spinner.clear()
 
     await generateEnv(`${basePath}${dirSep}.env.example`, `${basePath}${dirSep}.env`, project.mode, portsStartingRange, providers)
@@ -144,7 +133,7 @@ async function init() {
     dotEnv({ path: `${basePath}${dirSep}.env` })
 
     spinner.create(chalk.bold.yellow('Installing Node Modules... (get a coffee)'))
-    await execPromise(`cd ${basePath}${dirSep}frontend && npm install`)
+    await execPromise(`cd ${basePath}${dirSep}frontend && npm install --force`)
     await execPromise(`cd ${basePath}${dirSep}frontend && npx next-ws-cli@latest patch --yes`)
     spinner.clear()
 
