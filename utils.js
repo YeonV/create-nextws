@@ -292,7 +292,7 @@ export async function generateEnv(input = '.env.example', output = '.env', mode 
   const lines = fileStream.split('\n')
 
   const categories = [
-    { name: 'URL & Ports', filter: (key) => key.endsWith('_PORT') || ['NEXT_PUBLIC_NEXTJS_URL', 'NEXT_PUBLIC_STRAPI_BACKEND_URL'].includes(key) },
+    { name: 'URL & Ports', filter: (key) => key.endsWith('_PORT') || ['NEXT_PUBLIC_NEXTJS_URL', 'NEXTAUTH_URL', 'NEXT_PUBLIC_STRAPI_BACKEND_URL'].includes(key) },
     { name: 'Database', filter: (key) => key.includes('DATABASE') && !key.endsWith('_PORT') },
     { name: 'Advanced', filter: (key) => ['NODE_ENV', 'HOST'].includes(key) },
     { name: 'Docker', filter: (key) => key.includes('DOCKER') },
@@ -349,6 +349,8 @@ export async function generateEnv(input = '.env.example', output = '.env', mode 
       ])
       value = userInput[key] || defaultValue
     } else if (mode === 'smart' && key.endsWith('NEXT_PUBLIC_NEXTJS_URL')) {
+      value = `http://localhost:${portsStartingRange}`
+    } else if (mode === 'smart' && key.endsWith('NEXTAUTH_URL')) {
       value = `http://localhost:${portsStartingRange}`
     } else if (mode === 'smart' && key.endsWith('NEXT_PUBLIC_STRAPI_BACKEND_URL')) {
       value = `http://localhost:${portsStartingRange + 4}`
