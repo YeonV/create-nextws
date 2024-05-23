@@ -142,8 +142,15 @@ async function init() {
         await configureDockerCompose(`${basePath}/docker-compose.yml`, projectName, project.mode)
       }
 
-      spinner.create(chalk.bold.yellow('Starting Docker Containers... (First time takes ages, get another coffee or two)'))
+      spinner.create(chalk.bold.yellow('Creating Docker Network...'))
       await dockerNetwork(process.env.DOCKER_NETWORK)
+      spinner.clear()
+
+      spinner.create(chalk.bold.yellow('Pulling Docker Images... (First time takes ages)'))
+      await execPromise(`cd ${basePath} && docker-compose pull`)
+      spinner.clear()
+
+      spinner.create(chalk.bold.yellow('Starting Docker Containers... (First time takes ages, get another coffee or two)'))
       await execPromise(`cd ${basePath} && docker-compose up -d`)
       spinner.clear()
     }
