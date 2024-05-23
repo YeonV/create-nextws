@@ -235,7 +235,7 @@ export async function dockerNetwork(name) {
  * @param {Array<string>} [providers=[]] - The list of providers.
  * @returns {Promise<void>} - A promise that resolves when the operation is complete.
  */
-export async function generateEnv(input = '.env.example', output = '.env', mode = 'manual', portsStartingRange = 3000, providers = []) {
+export async function generateEnv(input = '.env.example', output = '.env', mode = 'manual', portsStartingRange = 3000, providers = [], name) {
   let providerConfigs = {}
   for (const provider of providers) {
     const idKey = provider.toUpperCase() + '_ID'
@@ -357,6 +357,8 @@ export async function generateEnv(input = '.env.example', output = '.env', mode 
     } else if (mode === 'smart' && key.endsWith('_PORT')) {
       value = portsStartingRange
       portsStartingRange++
+    } else if (key.endsWith('CURRENT_DIR')) {
+      value = cwd() + '/' + name
     } else {
       providerConfigs[key] ? (value = providerConfigs[key]) : (value = defaultValue)
     }

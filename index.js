@@ -126,7 +126,7 @@ async function init() {
     await setPackageJson(projectName)
     spinner.clear()
 
-    await generateEnv(`${basePath}${dirSep}.env.example`, `${basePath}${dirSep}.env`, project.mode, portsStartingRange, providers)
+    await generateEnv(`${basePath}${dirSep}.env.example`, `${basePath}${dirSep}.env`, project.mode, portsStartingRange, providers, projectName)
     await execPromise(`${copy} ${basePath}${dirSep}.env ${basePath}${dirSep}frontend${dirSep}.env`)
     await execPromise(`${copy} ${basePath}${dirSep}.env ${basePath}${dirSep}backend${dirSep}.env`)
 
