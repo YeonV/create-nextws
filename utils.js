@@ -358,7 +358,7 @@ export async function generateEnv(input = '.env.example', output = '.env', mode 
       value = portsStartingRange
       portsStartingRange++
     } else if (key.endsWith('CURRENT_DIR')) {
-      value = cwd() + '/' + name
+      value = cwd() + dirSep + name
     } else {
       providerConfigs[key] ? (value = providerConfigs[key]) : (value = defaultValue)
     }
