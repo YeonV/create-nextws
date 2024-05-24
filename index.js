@@ -147,11 +147,12 @@ async function init() {
       spinner.clear()
 
       spinner.create(chalk.bold.yellow('Pulling Docker Images... (First time takes ages)'))
-      await execPromise(`cd ${basePath} && docker-compose pull`) || spinner.clear()
+      ;(await execPromise(`cd ${basePath} && docker-compose pull ${projectName}-strapi-web ${projectName}-strapi-db ${projectName}-strapi-adminer`)) ||
+        spinner.clear()
       spinner.clear()
 
       spinner.create(chalk.bold.yellow('Starting Docker Containers... (First time takes ages, get another coffee or two)'))
-      await execPromise(`cd ${basePath} && docker-compose up -d`) || spinner.clear()
+      ;(await execPromise(`cd ${basePath} && docker-compose up -d`)) || spinner.clear()
       spinner.clear()
     }
 
