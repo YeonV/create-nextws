@@ -1,6 +1,6 @@
 {
   "name": "create-nextws",
-  "version": "0.1.2",
+  "version": "0.1.3",
   "description": "",
   "bin": {
     "create-vitron": "index.js",
