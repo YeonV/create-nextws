@@ -263,7 +263,7 @@ export async function generateEnv(input = '.env.example', output = '.env', mode 
     }
     console.log(chalk.bold.cyan('→ ') + chalk.bold.yellow('Create new app: ') + chalk.bold.cyan(authAppUrl))
     console.log(
-      chalk.bold.cyan('↳ ') + chalk.bold.yellow('Homepage URL:   ') + chalk.bold.cyan(`http://localhost:${portsStartingRange}/api/auth/callback/google`)
+      chalk.bold.cyan('↳ ') + chalk.bold.yellow('Homepage URL:   ') + chalk.bold.cyan(`http://localhost:${portsStartingRange}/api/auth/callback/${provider}`)
     )
     console.log(chalk.bold.cyan('↳ ') + chalk.bold.yellow('Auth CB URL:    ') + chalk.bold.cyan(`http://localhost:${portsStartingRange}`))
 
