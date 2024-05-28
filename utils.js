@@ -350,10 +350,12 @@ export async function generateEnv(input = '.env.example', output = '.env', mode 
       value = userInput[key] || defaultValue
     } else if (mode === 'smart' && key.endsWith('NEXT_PUBLIC_NEXTJS_URL')) {
       value = `http://localhost:${portsStartingRange}`
+    } else if (mode === 'smart' && key.endsWith('NEXT_PUBLIC_NEXTJS_URL_DOCKER')) {
+      value = `http://${name}-next-prod:${portsStartingRange}`
     } else if (mode === 'smart' && key.endsWith('NEXTAUTH_URL')) {
       value = `http://localhost:${portsStartingRange}`
     } else if (mode === 'smart' && key.endsWith('NEXT_PUBLIC_STRAPI_BACKEND_URL')) {
-      value = `http://localhost:${portsStartingRange + 4}`
+      value = `http://${name}-strapi-web:${portsStartingRange + 4}`
     } else if (mode === 'smart' && key.endsWith('_PORT')) {
       value = portsStartingRange
       portsStartingRange++
