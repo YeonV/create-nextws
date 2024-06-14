@@ -352,6 +352,10 @@ export async function generateEnv(input = '.env.example', output = '.env', mode 
       value = `http://localhost:${portsStartingRange}`
     } else if (mode === 'smart' && key.endsWith('NEXT_PUBLIC_NEXTJS_URL_DOCKER')) {
       value = `http://${name}-next-prod:${portsStartingRange}`
+    } else if (mode === 'smart' && key.endsWith('NEXT_PUBLIC_PEERJS_URL_DOCKER')) {
+      value = `http://${name}-peerjs:${portsStartingRange + 5}`
+    } else if (mode === 'smart' && key.endsWith('NEXT_PUBLIC_PEERJS_URL')) {
+      value = `http://localhost:${portsStartingRange + 5}`
     } else if (mode === 'smart' && key.endsWith('NEXTAUTH_URL')) {
       value = `http://localhost:${portsStartingRange}`
     } else if (mode === 'smart' && key.endsWith('NEXT_PUBLIC_STRAPI_BACKEND_URL')) {
@@ -385,13 +389,14 @@ export async function configureDockerCompose(filePath = 'docker-compose.yml', na
   const dockerCompose = fs.readFileSync(filePath, 'utf-8')
 
   // Define the services that can be renamed
-  const services = ['yznextdev', 'yznextprod', 'yzstrapiDB', 'yzstrapiAdminer', 'yzstrapiweb']
+  const services = ['yznextdev', 'yznextprod', 'yzstrapiDB', 'yzstrapiAdminer', 'yzstrapiweb', 'yzpeerjs']
   const serviceNames = {
     yznextdev: 'NextJS - Development',
     yznextprod: 'NextJS - Production',
     yzstrapiDB: 'Strapi - Database',
     yzstrapiAdminer: 'Strapi - Adminer',
-    yzstrapiweb: 'Strapi - Web'
+    yzstrapiweb: 'Strapi - Web',
+    yzpeerjs: 'PeerJS'
   }
   let responses = {}
   if (mode === 'smart') {
@@ -400,7 +405,8 @@ export async function configureDockerCompose(filePath = 'docker-compose.yml', na
       yznextprod: `${name}-next-prod`,
       yzstrapiDB: `${name}-strapi-db`,
       yzstrapiAdminer: `${name}-strapi-adminer`,
-      yzstrapiweb: `${name}-strapi-web`
+      yzstrapiweb: `${name}-strapi-web`,
+      yzpeerjs: `${name}-peerjs`
     }
   } else {
     console.log(chalk.bold.yellow('✔ Set new service names:'))
