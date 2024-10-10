@@ -89,7 +89,7 @@ async function init() {
   let portsStartingRange = 3000
   let providers = []
   if (project.mode === 'smart') {
-    const providerOptions = ['github', 'google', 'twitter', 'discord', 'spotify', 'battlenet']
+    const providerOptions = ['github', 'google', 'twitter', 'discord', 'spotify', 'battlenet', 'authzero']
 
     const p = await prompts([
       {

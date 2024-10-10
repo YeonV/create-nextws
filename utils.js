@@ -260,7 +260,7 @@ export async function generateEnv(input = '.env.example', output = '.env', mode 
       case 'battlenet':
         authAppUrl = 'https://develop.battle.net/access/clients'
         break
-      case 'auth0':
+      case 'authzero':
         authAppUrl = 'https://manage.auth0.com/dashboard'
         break
     }
@@ -282,11 +282,15 @@ export async function generateEnv(input = '.env.example', output = '.env', mode 
         name: 'clientSecret',
         message: chalk.bold.yellow(`${provider} Client Secret:`)
       },
-      ...(provider === 'auth0' ? [{
-        type: 'text',
-        name: 'domain',
-        message: chalk.bold.yellow('Auth0 Domain:')
-      }] : [])
+      ...(provider === 'auth0'
+        ? [
+            {
+              type: 'text',
+              name: 'domain',
+              message: chalk.bold.yellow('Auth0 Domain:')
+            }
+          ]
+        : [])
     ])
     providerConfigs = {
       ...providerConfigs,
@@ -301,7 +305,10 @@ export async function generateEnv(input = '.env.example', output = '.env', mode 
   const lines = fileStream.split('\n')
 
   const categories = [
-    { name: 'URL & Ports', filter: (key) => key.endsWith('_PORT') || ['NEXT_PUBLIC_NEXTJS_URL', 'NEXTAUTH_URL', 'NEXT_PUBLIC_STRAPI_BACKEND_URL'].includes(key) },
+    {
+      name: 'URL & Ports',
+      filter: (key) => key.endsWith('_PORT') || ['NEXT_PUBLIC_NEXTJS_URL', 'NEXTAUTH_URL', 'NEXT_PUBLIC_STRAPI_BACKEND_URL'].includes(key)
+    },
     { name: 'Database', filter: (key) => key.includes('DATABASE') && !key.endsWith('_PORT') },
     { name: 'Advanced', filter: (key) => ['NODE_ENV', 'HOST'].includes(key) },
     { name: 'Docker', filter: (key) => key.includes('DOCKER') },
