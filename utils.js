@@ -282,7 +282,7 @@ export async function generateEnv(input = '.env.example', output = '.env', mode 
         name: 'clientSecret',
         message: chalk.bold.yellow(`${provider} Client Secret:`)
       },
-      ...(provider === 'auth0'
+      ...(provider === 'authzero'
         ? [
             {
               type: 'text',
@@ -297,7 +297,7 @@ export async function generateEnv(input = '.env.example', output = '.env', mode 
       ...{
         [idKey]: p.clientId,
         [secretKey]: p.clientSecret,
-        ...(provider === 'auth0' ? { AUTH0_DOMAIN: p.domain } : {})
+        ...(provider === 'authzero' ? { AUTH0_DOMAIN: p.domain } : {})
       }
     }
   }
