@@ -260,6 +260,9 @@ export async function generateEnv(input = '.env.example', output = '.env', mode 
       case 'battlenet':
         authAppUrl = 'https://develop.battle.net/access/clients'
         break
+      case 'auth0':
+        authAppUrl = 'https://manage.auth0.com/dashboard'
+        break
     }
     console.log(chalk.bold.cyan('→ ') + chalk.bold.yellow('Create new app: ') + chalk.bold.cyan(authAppUrl))
     console.log(
@@ -278,13 +281,19 @@ export async function generateEnv(input = '.env.example', output = '.env', mode 
         type: 'text',
         name: 'clientSecret',
         message: chalk.bold.yellow(`${provider} Client Secret:`)
-      }
+      },
+      ...(provider === 'auth0' ? [{
+        type: 'text',
+        name: 'domain',
+        message: chalk.bold.yellow('Auth0 Domain:')
+      }] : [])
     ])
     providerConfigs = {
       ...providerConfigs,
       ...{
         [idKey]: p.clientId,
-        [secretKey]: p.clientSecret
+        [secretKey]: p.clientSecret,
+        ...(provider === 'auth0' ? { AUTH0_DOMAIN: p.domain } : {})
       }
     }
   }
